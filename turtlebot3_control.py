@@ -34,16 +34,20 @@ def draw_robot(x, y, q, s, h):
 
 
 def read_lidar(point_cloud_handle):
-    points = np.array(sim.getPointCloudPoints(point_cloud_handle, 0)).reshape(-1, 3).T
+    point_cloud = np.array(sim.getPointCloudPoints(point_cloud_handle, 0)).reshape(-1, 3).T
 
-    H = np.array(sim.getObjectMatrix(point_cloud_handle, -1)).reshape(3, 4)
+    return point_cloud
+
+
+def lidar_to_world(point_cloud, lidar_handle):
+    H = np.array(sim.getObjectMatrix(lidar_handle, -1)).reshape(3, 4)
 
     R = H[:, :3]
     T = H[:, 3].reshape(3, 1)
 
-    points = (R @ points) + T
+    point_cloud = (R @ point_cloud) + T
 
-    return points
+    return point_cloud
 
 
 print("Starting ZMQ Client")
@@ -89,8 +93,9 @@ while tc < tf:
     fp[kd] = robot_orientation[2]
 
     # Map environment
-    points = read_lidar(point_cloud_handle)
-    point_cloud_map.append(points)
+    point_cloud = read_lidar(point_cloud_handle)
+    point_cloud_world = lidar_to_world(point_cloud, lidar_handle)
+    point_cloud_map.append(point_cloud_world)
 
     # Update time variables
     tc += hd
